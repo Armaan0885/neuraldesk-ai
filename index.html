@@ -93,9 +93,8 @@
   <aside>
     <div class="brand">Neural<span>Desk</span></div>
     <button class="new-chat" id="newChat">＋ New conversation</button>
-    <div class="label">WORKSPACE</div>
-    <div class="history">✦ Your AI assistant</div>
-    <div class="history">⌘ Powered by local AI</div>
+    <div class="label">YOUR CONVERSATIONS</div>
+    <div id="chatHistory"></div>
   </aside>
 
   <main>
@@ -123,6 +122,75 @@
     const messages = document.getElementById('messages');
     const send = document.getElementById('send');
     let conversation = [];
+    let savedChats = JSON.parse(localStorage.getItem('neuraldesk_chats') || '[]');
+    
+let activeChatId = null;
+
+function saveConversation() {
+  if (conversation.length === 0) return;
+
+  if (!activeChatId) {
+    activeChatId = Date.now().toString();
+  }
+
+  const existingIndex = savedChats.findIndex(
+    chat => chat.id === activeChatId
+  );
+
+  const chat = {
+    id: activeChatId,
+    title: conversation.find(m => m.role === 'user')
+      ?.content.slice(0, 35) || 'New conversation',
+    messages: [...conversation],
+    updatedAt: Date.now()
+  };
+
+  if (existingIndex >= 0) {
+    savedChats[existingIndex] = chat;
+  } else {
+    savedChats.unshift(chat);
+  }
+
+  savedChats.sort((a, b) => b.updatedAt - a.updatedAt);
+  localStorage.setItem('neuraldesk_chats', JSON.stringify(savedChats));
+  renderHistory();
+}
+
+function renderHistory() {
+  const history = document.getElementById('chatHistory');
+  if (!history) return;
+
+  history.innerHTML = '';
+
+  savedChats.forEach(chat => {
+    const button = document.createElement('button');
+    button.className = 'history';
+    button.style.cssText =
+      'display:block;width:100%;text-align:left;background:transparent;' +
+      'border:0;cursor:pointer;color:#aaa9bb;border-radius:8px;';
+
+    button.textContent = chat.title;
+    button.title = chat.title;
+
+    button.addEventListener('click', () => {
+      activeChatId = chat.id;
+      conversation = [...chat.messages];
+      messages.innerHTML = '';
+
+      conversation.forEach(message => {
+        addMessage(
+          message.content,
+          message.role === 'user' ? 'user' : 'assistant'
+        );
+      });
+    });
+
+    history.appendChild(button);
+  });
+}
+
+renderHistory();
+
 
     function addMessage(text, role) {
       const div = document.createElement('div');
@@ -133,15 +201,24 @@
       return div;
     }
 
-    document.getElementById('newChat').addEventListener('click', () => {
-      conversation = [];
-      messages.innerHTML = '';
-      const welcome = document.createElement('div');
-      welcome.className = 'welcome';
-      welcome.id = 'welcome';
-      welcome.innerHTML = '<div class="orb"></div><h1>Think beyond.</h1><p class="subtitle">Your ideas deserve more than ordinary answers.<br>What would you like to explore today?</p>';
-      messages.appendChild(welcome);
-    });
+    
+document.getElementById('newChat').addEventListener('click', () => {
+  activeChatId = null;
+  conversation = [];
+  messages.innerHTML = '';
+
+  const welcome = document.createElement('div');
+  welcome.className = 'welcome';
+  welcome.id = 'welcome';
+  welcome.innerHTML =
+    '<div class="orb"></div><h1>Think beyond.</h1>' +
+    '<p class="subtitle">Your ideas deserve more than ordinary answers.<br>' +
+    'What would you like to explore today?</p>';
+
+  messages.appendChild(welcome);
+  promptInput.focus();
+});
+
 
     form.addEventListener('submit', async (event) => {
       event.preventDefault();
@@ -152,23 +229,34 @@
       promptInput.value = '';
       addMessage(text, 'user');
       conversation.push({ role: 'user', content: text });
+      saveConversation();
       send.disabled = true;
       const reply = addMessage('Thinking...', 'assistant');
 
       try {
-        const response = await fetch('http://localhost:11434/api/chat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            model: 'llama3.2:1b',
-            messages: conversation,
-            stream: false
-          })
-        });
-        if (!response.ok) throw new Error('Ollama returned HTTP ' + response.status);
-        const data = await response.json();
-        reply.textContent = 'NEURALDESK\n' + data.message.content;
-        conversation.push({ role: 'assistant', content: data.message.content });
+        const history = conversation.slice(0, -1).map(message => ({
+  role: message.role === 'assistant' ? 'model' : 'user',
+  content: message.content
+}));
+
+const response = await fetch('http://localhost:3000/api/chat', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    message: text,
+    history
+  })
+});
+
+if (!response.ok) {
+  throw new Error('Gemini request failed: HTTP ' + response.status);
+}
+
+const data = await response.json();
+if (!data.reply) throw new Error(data.error || 'No response from Gemini');
+
+reply.textContent = 'NEURALDESK\n' + data.reply;
+conversation.push({ role: 'assistant', content: data.reply });
       } catch (error) {
         reply.textContent = 'NEURALDESK\nCould not connect to Ollama. Make sure Ollama is running on your computer. Details: ' + error.message;
       } finally {
