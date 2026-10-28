@@ -4,25 +4,55 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0b0b10">
   <title>NeuralDesk — AI Workspace</title>
   <style>
     * { box-sizing: border-box; }
+
     body {
       margin: 0;
       font-family: Inter, Arial, sans-serif;
       background: #0b0b10;
       color: #f4f4f8;
       height: 100vh;
+      height: 100dvh;
       display: flex;
+      overflow: hidden;
     }
+
     aside {
       width: 250px;
+      flex: 0 0 250px;
       padding: 24px 16px;
       background: #101017;
       border-right: 1px solid #252530;
+      overflow-y: auto;
     }
-    .brand { font-size: 22px; font-weight: 750; margin-bottom: 28px; }
+
+    .sidebar-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .brand {
+      font-size: 22px;
+      font-weight: 750;
+      margin-bottom: 28px;
+    }
+
     .brand span { color: #9c83ff; }
+
+    .sidebar-close {
+      display: none;
+      background: transparent;
+      border: 0;
+      color: white;
+      font-size: 28px;
+      line-height: 1;
+      cursor: pointer;
+    }
+
     .new-chat {
       width: 100%;
       padding: 12px;
@@ -32,74 +62,245 @@
       border-radius: 10px;
       cursor: pointer;
     }
+
+    .new-chat:hover { background: #302c40; }
+
     .label {
       color: #777789;
       font-size: 11px;
       letter-spacing: 1.5px;
       margin: 30px 8px 12px;
     }
-    .history { color: #aaa9bb; font-size: 13px; padding: 10px 8px; }
-    main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+
+    .history {
+      color: #aaa9bb;
+      font-size: 13px;
+      padding: 10px 8px;
+    }
+
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      min-height: 0;
+    }
+
     header {
       padding: 20px 28px;
       border-bottom: 1px solid #252530;
       color: #c6c4d5;
       font-size: 14px;
+      flex-shrink: 0;
     }
+
+    #menuButton {
+      display: none;
+      background: transparent;
+      border: 1px solid #353443;
+      color: #f4f4f8;
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 20px;
+      line-height: 1;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    #sidebarOverlay { display: none; }
+
     #messages {
       flex: 1;
+      min-height: 0;
       overflow-y: auto;
       padding: 35px 20px;
       width: 100%;
     }
-    .welcome { text-align: center; margin: 13vh auto 35px; max-width: 550px; }
+
+    .welcome {
+      text-align: center;
+      margin: 13vh auto 35px;
+      max-width: 550px;
+    }
+
     .orb {
-      width: 58px; height: 58px; margin: auto auto 22px;
+      width: 58px;
+      height: 58px;
+      margin: auto auto 22px;
       border-radius: 20px;
       background: linear-gradient(135deg, #a78bfa, #5340b7);
       box-shadow: 0 0 50px #7054db33;
     }
-    h1 { font-size: clamp(28px, 4vw, 42px); margin: 0 0 12px; letter-spacing: -1.5px; }
-    .subtitle { color: #9392a6; line-height: 1.7; }
-    .message { max-width: 760px; margin: 0 auto 24px; line-height: 1.7; white-space: pre-wrap; }
+
+    h1 {
+      font-size: clamp(28px, 4vw, 42px);
+      margin: 0 0 12px;
+      letter-spacing: -1.5px;
+    }
+
+    .subtitle {
+      color: #9392a6;
+      line-height: 1.7;
+    }
+
+    .message {
+      max-width: 760px;
+      margin: 0 auto 24px;
+      line-height: 1.7;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
     .user { color: #c8baff; }
     .assistant { color: #e3e1ed; }
-    .composer { width: min(760px, calc(100% - 32px)); margin: 0 auto 24px; }
+
+    .composer {
+      width: min(760px, calc(100% - 32px));
+      margin: 0 auto 24px;
+      flex-shrink: 0;
+    }
+
     .input-wrap {
-      display: flex; align-items: end; gap: 10px;
-      padding: 10px; border: 1px solid #353443;
-      background: #15151e; border-radius: 16px;
+      display: flex;
+      align-items: end;
+      gap: 10px;
+      padding: 10px;
+      border: 1px solid #353443;
+      background: #15151e;
+      border-radius: 16px;
     }
+
     textarea {
-      flex: 1; resize: none; max-height: 150px; min-height: 42px;
-      padding: 11px; border: 0; outline: 0; background: transparent;
-      color: white; font: inherit;
+      flex: 1;
+      min-width: 0;
+      resize: none;
+      max-height: 150px;
+      min-height: 42px;
+      padding: 11px;
+      border: 0;
+      outline: 0;
+      background: transparent;
+      color: white;
+      font: inherit;
     }
+
     #send {
-      border: 0; border-radius: 11px; background: #8c70ed;
-      color: white; padding: 12px 16px; cursor: pointer;
+      border: 0;
+      border-radius: 11px;
+      background: #8c70ed;
+      color: white;
+      padding: 12px 16px;
+      cursor: pointer;
+      flex-shrink: 0;
     }
-    #send:disabled { opacity: .5; cursor: wait; }
-    .hint { text-align: center; color: #666577; font-size: 11px; margin-top: 12px; }
-    @media(max-width:650px) {
-      aside { display:none; }
-      header { padding: 17px; }
+
+    #send:disabled {
+      opacity: .5;
+      cursor: wait;
+    }
+
+    .hint {
+      text-align: center;
+      color: #666577;
+      font-size: 11px;
+      margin-top: 12px;
+    }
+
+    @media (max-width: 650px) {
+      aside {
+        display: block;
+        position: fixed;
+        inset: 0 auto 0 0;
+        width: min(280px, 85vw);
+        height: 100vh;
+        height: 100dvh;
+        flex: none;
+        overflow-y: auto;
+        z-index: 1001;
+        transform: translateX(-100%);
+        transition: transform 0.25s ease;
+        padding: 24px 16px;
+        box-shadow: 12px 0 35px rgba(0, 0, 0, 0.25);
+      }
+
+      aside.open { transform: translateX(0); }
+
+      .sidebar-close {
+        display: block;
+        margin-top: -24px;
+      }
+
+      #sidebarOverlay.open {
+        display: block;
+        position: fixed;
+        inset: 0;
+        z-index: 1000;
+        background: rgba(0, 0, 0, 0.65);
+      }
+
+      header {
+        padding: 14px 16px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-height: 60px;
+      }
+
+      #menuButton { display: block; }
+
       #messages { padding: 20px 16px; }
-      .welcome { margin-top: 10vh; }
+
+      .welcome { margin: 8vh auto 28px; }
+
+      .subtitle { font-size: 14px; }
+
+      .composer {
+        width: calc(100% - 24px);
+        margin-bottom: max(12px, env(safe-area-inset-bottom));
+      }
+
+      .input-wrap {
+        gap: 6px;
+        padding: 7px;
+      }
+
+      textarea {
+        padding: 10px 8px;
+        font-size: 16px;
+      }
+
+      #send { padding: 11px 14px; }
+
+      .hint { font-size: 10px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      aside { transition: none; }
     }
   </style>
 </head>
 <body>
-  <aside>
-    <div class="brand">Neural<span>Desk</span></div>
-    <button class="new-chat" id="newChat">＋ New conversation</button>
+  <aside id="sidebar" aria-label="Conversation sidebar">
+    <div class="sidebar-header">
+      <div class="brand">Neural<span>Desk</span></div>
+      <button id="closeSidebar" class="sidebar-close" type="button" aria-label="Close sidebar">×</button>
+    </div>
+
+    <button class="new-chat" id="newChat" type="button">＋ New conversation</button>
+
     <div class="label">YOUR CONVERSATIONS</div>
     <div id="chatHistory"></div>
   </aside>
 
+  <div id="sidebarOverlay" aria-hidden="true"></div>
+
   <main>
-    <header>NeuralDesk <span style="color:#777789">/</span> AI Workspace</header>
-    <section id="messages">
+    <header>
+      <button id="menuButton" type="button" aria-label="Open sidebar" aria-expanded="false">☰</button>
+      <div>NeuralDesk <span style="color:#777789">/</span> AI Workspace</div>
+    </header>
+
+    <section id="messages" aria-live="polite">
       <div class="welcome" id="welcome">
         <div class="orb"></div>
         <h1>Think beyond.</h1>
@@ -110,7 +311,7 @@
     <form class="composer" id="chatForm">
       <div class="input-wrap">
         <textarea id="prompt" placeholder="Ask NeuralDesk anything..." rows="1" required></textarea>
-        <button id="send" type="submit">↑</button>
+        <button id="send" type="submit" aria-label="Send message">↑</button>
       </div>
       <div class="hint">NeuralDesk can make mistakes. Verify important information.</div>
     </form>
@@ -121,76 +322,108 @@
     const promptInput = document.getElementById('prompt');
     const messages = document.getElementById('messages');
     const send = document.getElementById('send');
-    let conversation = [];
-    let savedChats = JSON.parse(localStorage.getItem('neuraldesk_chats') || '[]');
-    
-let activeChatId = null;
 
-function saveConversation() {
-  if (conversation.length === 0) return;
+    const sidebar = document.getElementById('sidebar');
+    const menuButton = document.getElementById('menuButton');
+    const closeSidebarButton = document.getElementById('closeSidebar');
+    const sidebarOverlay = document.getElementById('sidebarOverlay');
 
-  if (!activeChatId) {
-    activeChatId = Date.now().toString();
-  }
+    function openSidebar() {
+      sidebar.classList.add('open');
+      sidebarOverlay.classList.add('open');
+      menuButton.setAttribute('aria-expanded', 'true');
+    }
 
-  const existingIndex = savedChats.findIndex(
-    chat => chat.id === activeChatId
-  );
+    function closeSidebarMenu() {
+      sidebar.classList.remove('open');
+      sidebarOverlay.classList.remove('open');
+      menuButton.setAttribute('aria-expanded', 'false');
+    }
 
-  const chat = {
-    id: activeChatId,
-    title: conversation.find(m => m.role === 'user')
-      ?.content.slice(0, 35) || 'New conversation',
-    messages: [...conversation],
-    updatedAt: Date.now()
-  };
+    menuButton.addEventListener('click', openSidebar);
+    closeSidebarButton.addEventListener('click', closeSidebarMenu);
+    sidebarOverlay.addEventListener('click', closeSidebarMenu);
 
-  if (existingIndex >= 0) {
-    savedChats[existingIndex] = chat;
-  } else {
-    savedChats.unshift(chat);
-  }
-
-  savedChats.sort((a, b) => b.updatedAt - a.updatedAt);
-  localStorage.setItem('neuraldesk_chats', JSON.stringify(savedChats));
-  renderHistory();
-}
-
-function renderHistory() {
-  const history = document.getElementById('chatHistory');
-  if (!history) return;
-
-  history.innerHTML = '';
-
-  savedChats.forEach(chat => {
-    const button = document.createElement('button');
-    button.className = 'history';
-    button.style.cssText =
-      'display:block;width:100%;text-align:left;background:transparent;' +
-      'border:0;cursor:pointer;color:#aaa9bb;border-radius:8px;';
-
-    button.textContent = chat.title;
-    button.title = chat.title;
-
-    button.addEventListener('click', () => {
-      activeChatId = chat.id;
-      conversation = [...chat.messages];
-      messages.innerHTML = '';
-
-      conversation.forEach(message => {
-        addMessage(
-          message.content,
-          message.role === 'user' ? 'user' : 'assistant'
-        );
-      });
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') closeSidebarMenu();
     });
 
-    history.appendChild(button);
-  });
-}
+    let conversation = [];
+    let savedChats = [];
 
-renderHistory();
+    try {
+      savedChats = JSON.parse(localStorage.getItem('neuraldesk_chats') || '[]');
+      if (!Array.isArray(savedChats)) savedChats = [];
+    } catch {
+      savedChats = [];
+    }
 
+    let activeChatId = null;
+
+    function saveConversation() {
+      if (conversation.length === 0) return;
+
+      if (!activeChatId) {
+        activeChatId = Date.now().toString();
+      }
+
+      const existingIndex = savedChats.findIndex(chat => chat.id === activeChatId);
+
+      const chat = {
+        id: activeChatId,
+        title: conversation.find(message => message.role === 'user')
+          ?.content.slice(0, 35) || 'New conversation',
+        messages: [...conversation],
+        updatedAt: Date.now()
+      };
+
+      if (existingIndex >= 0) {
+        savedChats[existingIndex] = chat;
+      } else {
+        savedChats.unshift(chat);
+      }
+
+      savedChats.sort((a, b) => b.updatedAt - a.updatedAt);
+      localStorage.setItem('neuraldesk_chats', JSON.stringify(savedChats));
+      renderHistory();
+    }
+
+    function renderHistory() {
+      const history = document.getElementById('chatHistory');
+      if (!history) return;
+
+      history.innerHTML = '';
+
+      savedChats.forEach(chat => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'history';
+        button.style.cssText =
+          'display:block;width:100%;text-align:left;background:transparent;' +
+          'border:0;cursor:pointer;color:#aaa9bb;border-radius:8px;';
+
+        button.textContent = chat.title;
+        button.title = chat.title;
+
+        button.addEventListener('click', () => {
+          activeChatId = chat.id;
+          conversation = [...chat.messages];
+          messages.innerHTML = '';
+          closeSidebarMenu();
+
+          conversation.forEach(message => {
+            addMessage(
+              message.content,
+              message.role === 'user' ? 'user' : 'assistant'
+            );
+          });
+        });
+
+        history.appendChild(button);
+      });
+    }
+
+    renderHistory();
 
     function addMessage(text, role) {
       const div = document.createElement('div');
@@ -201,24 +434,23 @@ renderHistory();
       return div;
     }
 
-    
-document.getElementById('newChat').addEventListener('click', () => {
-  activeChatId = null;
-  conversation = [];
-  messages.innerHTML = '';
+    document.getElementById('newChat').addEventListener('click', () => {
+      activeChatId = null;
+      conversation = [];
+      messages.innerHTML = '';
 
-  const welcome = document.createElement('div');
-  welcome.className = 'welcome';
-  welcome.id = 'welcome';
-  welcome.innerHTML =
-    '<div class="orb"></div><h1>Think beyond.</h1>' +
-    '<p class="subtitle">Your ideas deserve more than ordinary answers.<br>' +
-    'What would you like to explore today?</p>';
+      const welcome = document.createElement('div');
+      welcome.className = 'welcome';
+      welcome.id = 'welcome';
+      welcome.innerHTML =
+        '<div class="orb"></div><h1>Think beyond.</h1>' +
+        '<p class="subtitle">Your ideas deserve more than ordinary answers.<br>' +
+        'What would you like to explore today?</p>';
 
-  messages.appendChild(welcome);
-  promptInput.focus();
-});
-
+      messages.appendChild(welcome);
+      closeSidebarMenu();
+      promptInput.focus();
+    });
 
     form.addEventListener('submit', async (event) => {
       event.preventDefault();
@@ -230,35 +462,41 @@ document.getElementById('newChat').addEventListener('click', () => {
       addMessage(text, 'user');
       conversation.push({ role: 'user', content: text });
       saveConversation();
+
       send.disabled = true;
       const reply = addMessage('Thinking...', 'assistant');
 
       try {
         const history = conversation.slice(0, -1).map(message => ({
-  role: message.role === 'assistant' ? 'model' : 'user',
-  content: message.content
-}));
+          role: message.role === 'assistant' ? 'model' : 'user',
+          content: message.content
+        }));
 
-const response = await fetch('https://neuraldesk-api-lo0u.onrender.com/api/chat', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    message: text,
-    history
-  })
-});
+        const response = await fetch('https://neuraldesk-api-lo0u.onrender.com/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: text,
+            history
+          })
+        });
 
-if (!response.ok) {
-  throw new Error('Gemini request failed: HTTP ' + response.status);
-}
+        if (!response.ok) {
+          throw new Error('Gemini request failed: HTTP ' + response.status);
+        }
 
-const data = await response.json();
-if (!data.reply) throw new Error(data.error || 'No response from Gemini');
+        const data = await response.json();
+        if (!data.reply) {
+          throw new Error(data.error || 'No response from Gemini');
+        }
 
-reply.textContent = 'NEURALDESK\n' + data.reply;
-conversation.push({ role: 'assistant', content: data.reply });
+        reply.textContent = 'NEURALDESK\n' + data.reply;
+        conversation.push({ role: 'assistant', content: data.reply });
+        saveConversation();
       } catch (error) {
-        reply.textContent = 'NEURALDESK\nCould not connect to Ollama. Make sure Ollama is running on your computer. Details: ' + error.message;
+        reply.textContent =
+          'NEURALDESK\nCould not get a response from Gemini. Please try again. Details: ' +
+          error.message;
       } finally {
         send.disabled = false;
         promptInput.focus();
